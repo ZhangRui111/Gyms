@@ -2,8 +2,8 @@
 Dueling DQN & Natural DQN comparison
 View more on my tutorial page: https://morvanzhou.github.io/tutorials/
 Using:
-Tensorflow: 1.0
-gym: 0.8.0
+Tensorflow: 1.6.0
+gym: 0.10.5
 """
 
 
@@ -22,64 +22,73 @@ env.seed(1)
 MEMORY_SIZE = 3000
 ACTION_SPACE = 25
 
-sess = tf.Session()
-with tf.variable_scope('natural'):
-    natural_DQN = DuelingDQN(
-        n_actions=ACTION_SPACE, n_features=3, memory_size=MEMORY_SIZE,
-        e_greedy_increment=0.001, sess=sess, dueling=False)
 
-with tf.variable_scope('dueling'):
-    dueling_DQN = DuelingDQN(
-        n_actions=ACTION_SPACE, n_features=3, memory_size=MEMORY_SIZE,
-        e_greedy_increment=0.001, sess=sess, dueling=True, output_graph=True)
+def plot_results(array1, array2, array3, array4):
+    plt.figure(1)
+    plt.plot(np.array(array1), c='r', label='natural')
+    plt.plot(np.array(array2), c='b', label='dueling')
+    plt.legend(loc='best')
+    plt.ylabel('cost')
+    plt.xlabel('training steps')
+    plt.grid()
 
-sess.run(tf.global_variables_initializer())
+    plt.figure(2)
+    plt.plot(np.array(array3), c='r', label='natural')
+    plt.plot(np.array(array4), c='b', label='dueling')
+    plt.legend(loc='best')
+    plt.ylabel('accumulated reward')
+    plt.xlabel('training steps')
+    plt.grid()
+
+    plt.show()
 
 
-def train(RL):
-    acc_r = [0]
-    total_steps = 0
-    observation = env.reset()
-    while True:
-        if total_steps-MEMORY_SIZE > 9000: env.render()
+def main():
+    sess = tf.Session()
+    with tf.variable_scope('natural'):
+        natural_DQN = DuelingDQN(
+            n_actions=ACTION_SPACE, n_features=3, memory_size=MEMORY_SIZE,
+            e_greedy_increment=0.001, sess=sess, dueling=False)
 
-        action = RL.choose_action(observation)
+    with tf.variable_scope('dueling'):
+        dueling_DQN = DuelingDQN(
+            n_actions=ACTION_SPACE, n_features=3, memory_size=MEMORY_SIZE,
+            e_greedy_increment=0.001, sess=sess, dueling=True, output_graph=True)
 
-        f_action = (action-(ACTION_SPACE-1)/2)/((ACTION_SPACE-1)/4)   # [-2 ~ 2] float actions
-        observation_, reward, done, info = env.step(np.array([f_action]))
+    sess.run(tf.global_variables_initializer())
 
-        reward /= 10      # normalize to a range of (-1, 0)
-        acc_r.append(reward + acc_r[-1])  # accumulated reward
+    def train(RL):
+        acc_r = [0]
+        total_steps = 0
+        observation = env.reset()
+        while True:
+            if total_steps - MEMORY_SIZE > 9000: env.render()
 
-        RL.store_transition(observation, action, reward, observation_)
+            action = RL.choose_action(observation)
 
-        if total_steps > MEMORY_SIZE:
-            RL.learn()
+            f_action = (action - (ACTION_SPACE - 1) / 2) / ((ACTION_SPACE - 1) / 4)  # [-2 ~ 2] float actions
+            observation_, reward, done, info = env.step(np.array([f_action]))
 
-        if total_steps-MEMORY_SIZE > 15000:
-            break
+            reward /= 10  # normalize to a range of (-1, 0)
+            acc_r.append(reward + acc_r[-1])  # accumulated reward
 
-        observation = observation_
-        total_steps += 1
-    return RL.cost_his, acc_r
+            RL.store_transition(observation, action, reward, observation_)
 
-c_natural, r_natural = train(natural_DQN)
-c_dueling, r_dueling = train(dueling_DQN)
+            if total_steps > MEMORY_SIZE:
+                RL.learn()
 
-plt.figure(1)
-plt.plot(np.array(c_natural), c='r', label='natural')
-plt.plot(np.array(c_dueling), c='b', label='dueling')
-plt.legend(loc='best')
-plt.ylabel('cost')
-plt.xlabel('training steps')
-plt.grid()
+            if total_steps - MEMORY_SIZE > 15000:
+                break
 
-plt.figure(2)
-plt.plot(np.array(r_natural), c='r', label='natural')
-plt.plot(np.array(r_dueling), c='b', label='dueling')
-plt.legend(loc='best')
-plt.ylabel('accumulated reward')
-plt.xlabel('training steps')
-plt.grid()
+            observation = observation_
+            total_steps += 1
+        return RL.cost_his, acc_r
 
-plt.show()
+    c_natural, r_natural = train(natural_DQN)
+    c_dueling, r_dueling = train(dueling_DQN)
+
+    plot_results(c_natural, c_dueling, r_natural, r_dueling)
+
+
+if __name__ == '__main__':
+    main()
