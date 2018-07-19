@@ -117,4 +117,6 @@ def main(model):
 
 
 if __name__ == '__main__':
+    # # change different models here:
+    # dqn_2013, dqn_2015,...
     main(model='dqn_2013')
