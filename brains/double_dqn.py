@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from games.CartPole_v0.hyperparameters import REPLY_START_SIZE
+from games.Breakout_v0.hyperparameters import REPLY_START_SIZE
 
 
 class DeepQNetwork:
@@ -75,7 +75,7 @@ class DeepQNetwork:
     def store_transition(self, s, a, r, s_):
         if not hasattr(self, 'memory_counter'):
             self.memory_counter = 0
-        transition = np.hstack((s, [a, r], s_))
+        transition = np.hstack((s.flatten(), [a, r], s_.flatten()))
         # replace the old memory with new memory
         index = self.memory_counter % self.memory_size
         self.memory[index, :] = transition
@@ -140,7 +140,9 @@ class DeepQNetwork:
 
         batch_index = np.arange(self.batch_size, dtype=np.int32)
 
-        selected_q_next = np.max(q_target_out, axis=1)
+        # # Double DQN
+        max_act4next = np.argmax(q_target_select_a, axis=1)
+        selected_q_next = q_target_out[batch_index, max_act4next]
 
         # real q_target
         q_target[batch_index, eval_act_index] = reward + self.gamma * selected_q_next

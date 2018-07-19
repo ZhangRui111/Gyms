@@ -118,9 +118,6 @@ class DeepQNetwork:
         reward = batch_memory[:, self.n_features + 1]
 
         batch_index = np.arange(self.batch_size, dtype=np.int32)
-        # # Double DQN
-        # max_act4next = np.argmax(q_target_select_a, axis=1)
-        # selected_q_next = q_target_out[batch_index, max_act4next]
 
         # # DQN
         selected_q_next = np.max(q_target_out, axis=1)
