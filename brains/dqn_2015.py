@@ -133,18 +133,13 @@ class DeepQNetwork:
         if self.summary_flag:
             tf.summary.histogram("q_eval", q_eval)
 
-        # self.eval_dqn = q_eval
-
         q_target = q_eval.copy()
 
         eval_act_index = batch_memory[:, self.n_features].astype(int)
         reward = batch_memory[:, self.n_features + 1]
 
         batch_index = np.arange(self.batch_size, dtype=np.int32)
-        # # Double DQN
-        # max_act4next = np.argmax(q_target_select_a, axis=1)
-        # selected_q_next = q_target_out[batch_index, max_act4next]
-        # # DQN
+
         selected_q_next = np.max(q_target_out, axis=1)
 
         # real q_target
