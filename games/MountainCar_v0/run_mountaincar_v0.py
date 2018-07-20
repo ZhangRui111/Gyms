@@ -24,38 +24,58 @@ def plot_results(his_natural, his_prio):
     plt.show()
 
 
-def run_mountaincar(env, RL):
-    total_steps = 0
-    steps = []
-    episodes = []
-    for i_episode in range(MAX_EPISODES):
-        observation = env.reset()
-        while True:
-            # env.render()
+def run_mountaincar(env, RL, model):
+    total_steps = 0  # total steps after training begins.
+    steps_total = []  # sum of steps until one episode.
+    episodes = []  # episode's index.
+    steps_episode = []  # steps for every single episode.
 
+    for i_episode in range(MAX_EPISODES):
+        print('episode:' + str(i_episode))
+        observation = env.reset()
+        episode_steps = 0
+
+        if 'sarsa' in model:
             action = RL.choose_action(observation, total_steps)
 
+        while True:
+            env.render()
+            # RL choose action based on observation
+            if 'sarsa' in model:
+                pass
+            else:
+                action = RL.choose_action(observation, total_steps)
+            # RL take action and get next observation and reward
             observation_, reward, done, info = env.step(action)
 
             if done:
                 reward = 10
 
-            RL.store_transition(observation, action, reward, observation_)
+            if 'sarsa' in model:
+                action_ = RL.choose_action(observation_, total_steps)
+                RL.store_transition(observation, action, reward, observation_, action_)
+            else:
+                RL.store_transition(observation, action, reward, observation_)
 
             if total_steps > RL.memory_size:
                 if (total_steps > REPLY_START_SIZE) and (total_steps % UPDATE_FREQUENCY == 0):
                     RL.learn()
 
+            observation = observation_
+            episode_steps += 1
+
             if done:
                 print('episode ', i_episode, ' finished')
-                steps.append(total_steps)
+                total_steps += episode_steps
+                steps_episode.append(episode_steps)
+                steps_total.append(total_steps)
                 episodes.append(i_episode)
                 break
 
-            observation = observation_
-            total_steps += 1
+            if 'sarsa' in model:
+                action = action_
 
-    return np.vstack((episodes, steps))
+    return [np.vstack((episodes, steps_total)), np.vstack((episodes, steps_episode))]
 
 
 def main(model):
@@ -117,7 +137,7 @@ def main(model):
     # Calculate running time
     start_time = time.time()
 
-    his_prio = run_mountaincar(env, RL)
+    his_prio = run_mountaincar(env, RL, model)
     print(his_prio)  # his_prio can be plotted by plot_results()
 
     end_time = time.time()

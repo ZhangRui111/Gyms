@@ -1,4 +1,5 @@
 import gym
+import numpy as np
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Set log level: only output error.
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Only use #0 GPU.
@@ -10,59 +11,57 @@ from games.Breakout_v0.hyperparameters import UPDATE_FREQUENCY
 
 
 def run_Breakout(env, RL, model):
-    step = 0
-    count_list = []
-    for episode in range(MAX_EPISODES):
-        print('episode:' + str(episode))
+    total_steps = 0  # total steps after training begins.
+    steps_total = []  # sum of steps until one episode.
+    episodes = []  # episode's index.
+    steps_episode = []  # steps for every single episode.
+
+    for i_episode in range(MAX_EPISODES):
+        print('episode:' + str(i_episode))
         # initial observation
         observation = env.reset()
         # counter for one episode
-        count = 0
+        episode_steps = 0
 
-        if model == 'sarsa':
-            action = RL.choose_action(observation, step)
+        if 'sarsa' in model:
+            action = RL.choose_action(observation, total_steps)
 
         while True:
             env.render()
             # RL choose action based on observation
-            if model == 'sarsa':
+            if 'sarsa' in model:
                 pass
             else:
-                action = RL.choose_action(observation, step)
-
+                action = RL.choose_action(observation, total_steps)
             # RL take action and get next observation and reward
             observation_, reward, done, info = env.step(action)
 
-            if model == 'sarsa':
-                action_ = RL.choose_action(observation_, step)
+            if 'sarsa' in model:
+                action_ = RL.choose_action(observation_, total_steps)
                 RL.store_transition(observation, action, reward, observation_, action_)
             else:
                 RL.store_transition(observation, action, reward, observation_)
 
             # 'step % UPDATE_FREQUENCY == 0' is for frame-skipping technique.
-            if (step > REPLY_START_SIZE) and (step % UPDATE_FREQUENCY == 0):
+            if (total_steps > REPLY_START_SIZE) and (total_steps % UPDATE_FREQUENCY == 0):
                 RL.learn()
 
-            # swap observation
             observation = observation_
+            episode_steps += 1
 
             # break while loop when end of this episode
             if done:
+                print('episode ', i_episode, ' finished')
+                total_steps += episode_steps
+                steps_episode.append(episode_steps)
+                steps_total.append(total_steps)
+                episodes.append(i_episode)
                 break
-            step += 1
 
-            # counter for one episode.
-            count += 1
-
-            if model == 'sarsa':
+            if 'sarsa' in model:
                 action = action_
 
-        print('episode:' + str(episode) + ' | ' + str(count))
-        count_list.append(count)
-
-    fo = open("./logs/counts.txt", "w")
-    fo.write(str(count_list))
-    fo.close()
+    return [np.vstack((episodes, steps_total)), np.vstack((episodes, steps_episode))]
 
 
 def main(model):

@@ -132,9 +132,9 @@ class DeepQNetwork:
 
         q_target = q_eval.copy()
 
-        eval_act_index = batch_memory[:, self.n_features].astype(int)
-        reward = batch_memory[:, self.n_features + 1]
-        next_act_index = batch_memory[:, self.n_features+2].astype(int)
+        eval_act_index = batch_memory[:, self.n_features].astype(int)  # a
+        reward = batch_memory[:, self.n_features + 1]  # r
+        next_act_index = batch_memory[:, self.n_features+2].astype(int)  # a_
 
         batch_index = np.arange(self.batch_size, dtype=np.int32)
 
