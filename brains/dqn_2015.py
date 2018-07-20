@@ -75,7 +75,7 @@ class DeepQNetwork:
     def store_transition(self, s, a, r, s_):
         if not hasattr(self, 'memory_counter'):
             self.memory_counter = 0
-        transition = np.hstack((s, [a, r], s_))
+        transition = np.hstack((s.flatten(), [a, r], s_.flatten()))
         # replace the old memory with new memory
         index = self.memory_counter % self.memory_size
         self.memory[index, :] = transition
@@ -123,10 +123,8 @@ class DeepQNetwork:
         batch_memory = self.memory[sample_index, :]
 
         # input is all next observation
-        q_target_select_a, q_target_out = \
-            self.sess.run([self.q_eval_net_out, self.q_target_net_out],
-                          feed_dict={self.eval_net_input: batch_memory[:, -self.n_features:],
-                                     self.target_net_input: batch_memory[:, -self.n_features:]})
+        q_target_out = self.sess.run(self.q_target_net_out,
+                                     feed_dict={self.target_net_input: batch_memory[:, -self.n_features:]})
         # real q_eval, input is the current observation
         q_eval = self.sess.run(self.q_eval_net_out,
                                {self.eval_net_input: batch_memory[:, :self.n_features]})
@@ -142,7 +140,7 @@ class DeepQNetwork:
 
         selected_q_next = np.max(q_target_out, axis=1)
 
-        # real q_target
+        # real q_target, in other words, ``y_i'' in algorithm.
         q_target[batch_index, eval_act_index] = reward + self.gamma * selected_q_next
         if self.summary_flag:
             tf.summary.histogram("q_target", q_target)

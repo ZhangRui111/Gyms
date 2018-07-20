@@ -9,7 +9,7 @@ from games.Breakout_v0.hyperparameters import REPLY_START_SIZE
 from games.Breakout_v0.hyperparameters import UPDATE_FREQUENCY
 
 
-def run_Breakout(env, RL):
+def run_Breakout(env, RL, model):
     step = 0
     count_list = []
     for episode in range(MAX_EPISODES):
@@ -19,14 +19,25 @@ def run_Breakout(env, RL):
         # counter for one episode
         count = 0
 
+        if model == 'sarsa':
+            action = RL.choose_action(observation, step)
+
         while True:
             env.render()
             # RL choose action based on observation
-            action = RL.choose_action(observation, step)
+            if model == 'sarsa':
+                pass
+            else:
+                action = RL.choose_action(observation, step)
+
             # RL take action and get next observation and reward
             observation_, reward, done, info = env.step(action)
 
-            RL.store_transition(observation, action, reward, observation_)
+            if model == 'sarsa':
+                action_ = RL.choose_action(observation_, step)
+                RL.store_transition(observation, action, reward, observation_, action_)
+            else:
+                RL.store_transition(observation, action, reward, observation_)
 
             # 'step % UPDATE_FREQUENCY == 0' is for frame-skipping technique.
             if (step > REPLY_START_SIZE) and (step % UPDATE_FREQUENCY == 0):
@@ -42,6 +53,9 @@ def run_Breakout(env, RL):
 
             # counter for one episode.
             count += 1
+
+            if model == 'sarsa':
+                action = action_
 
         print('episode:' + str(episode) + ' | ' + str(count))
         count_list.append(count)
@@ -81,9 +95,34 @@ def main(model):
             e_greedy_increment=0.001,
             output_graph=True,
         )
-    else:  # dueling_dqn
+    elif model == 'dueling_dqn':
         from brains.dueling_dqn import DeepQNetwork
         from games.Breakout_v0.network_dueling_dqn import build_network
+        inputs, outputs, weights = build_network(n_features, n_actions, lr=0.01)
+        # get the DeepQNetwork Agent
+        RL = DeepQNetwork(
+            n_actions=n_actions,
+            n_features=n_features,
+            eval_net_input=inputs[0],
+            target_net_input=inputs[1],
+            q_target=inputs[2],
+            q_eval_net_out=outputs[0],
+            loss=outputs[1],
+            train_op=outputs[2],
+            q_target_net_out=outputs[3],
+            e_params=weights[0],
+            t_params=weights[1],
+            learning_rate=0.01,
+            reward_decay=0.9,
+            e_greedy=0.9,
+            replace_target_iter=100,
+            memory_size=2000,
+            e_greedy_increment=0.001,
+            output_graph=True,
+        )
+    else:  # sarsa
+        from brains.sarsa import DeepQNetwork
+        from games.Breakout_v0.network_sarsa import build_network
         inputs, outputs, weights = build_network(n_features, n_actions, lr=0.01)
         # get the DeepQNetwork Agent
         RL = DeepQNetwork(
@@ -110,7 +149,7 @@ def main(model):
     # Calculate running time
     start_time = time.time()
 
-    run_Breakout(env, RL)
+    run_Breakout(env, RL, model)
 
     end_time = time.time()
     running_time = (end_time - start_time) / 60
@@ -122,5 +161,5 @@ def main(model):
 
 if __name__ == '__main__':
     # # change different models here:
-    # double_dqn, dueling_dqn,...
-    main(model='double_dqn')
+    # double_dqn, dueling_dqn, sarsa...
+    main(model='sarsa')
