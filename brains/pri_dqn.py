@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
+from games.MountainCar_v0.hyperparameters import REPLY_START_SIZE
 from games.MountainCar_v0.hyperparameters import M_EPSILON  # small amount to avoid zero priority
 from games.MountainCar_v0.hyperparameters import M_ALPHA # [0~1] convert the importance of TD error to priority
 from games.MountainCar_v0.hyperparameters import M_BETA  # importance-sampling, from initial value increasing to 1
@@ -147,7 +148,6 @@ class DeepQNetwork:
             batch_size=32,
             e_greedy_increment=None,
             output_graph=False,
-            prioritized=True,
     ):
         self.n_actions = n_actions
         self.n_features = n_features
@@ -192,9 +192,9 @@ class DeepQNetwork:
         transition = np.hstack((s, [a, r], s_))
         self.memory.store(transition)  # have high priority for newly arrived transition
 
-    def choose_action(self, observation):
+    def choose_action(self, observation, step):
         observation = observation[np.newaxis, :]
-        if np.random.uniform() < self.epsilon:
+        if step >= REPLY_START_SIZE and np.random.uniform() < self.epsilon:
             actions_value = self.sess.run(self.q_eval_net_out, feed_dict={self.eval_net_input: observation})
             action = np.argmax(actions_value)
         else:

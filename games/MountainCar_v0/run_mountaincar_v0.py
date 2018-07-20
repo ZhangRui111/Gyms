@@ -33,7 +33,7 @@ def run_mountaincar(env, RL):
         while True:
             # env.render()
 
-            action = RL.choose_action(observation)
+            action = RL.choose_action(observation, total_steps)
 
             observation_, reward, done, info = env.step(action)
 
@@ -66,56 +66,59 @@ def main(model):
     n_actions = env.action_space.n
     n_features = env.observation_space.high.size
 
-    # if model == 'pri_dqn':
-    #     from brains.dqn_2013 import DeepQNetwork
-    #     from games.CartPole_v0.network_dqn_2013 import build_network
-    #     inputs, outputs = build_network(n_features, n_actions, lr=0.01)
-    #     # get the DeepQNetwork Agent
-    #     RL = DeepQNetwork(
-    #         n_actions=n_actions,
-    #         n_features=n_features,
-    #         eval_net_input=inputs[0],
-    #         q_target=inputs[1],
-    #         q_eval_net_out=outputs[0],
-    #         loss=outputs[1],
-    #         train_op=outputs[2],
-    #         learning_rate=0.01,
-    #         reward_decay=0.9,
-    #         e_greedy=0.9,
-    #         replace_target_iter=100,
-    #         memory_size=2000,
-    #         e_greedy_increment=0.001,
-    #         output_graph=True,
-    #     )
-    # else:  # other model
-    #     pass
-
-    from brains.pri_dqn import DeepQNetwork
-    from games.MountainCar_v0.network_pri_dqn import build_network
-    inputs, outputs, weights = build_network(n_features, n_actions, lr=0.01)
-    # get the DeepQNetwork Agent
-    RL_prio = DeepQNetwork(
-        n_actions=3,
-        n_features=2,
-        eval_net_input=inputs[0],
-        target_net_input=inputs[1],
-        q_target=inputs[2],
-        ISWeights=inputs[3],
-        q_eval_net_out=outputs[0],
-        loss=outputs[1],
-        train_op=outputs[2],
-        q_target_net_out=outputs[3],
-        abs_errors=outputs[4],
-        e_params=weights[0],
-        t_params=weights[1],
-        e_greedy_increment=0.00005,
-        output_graph=True,
-    )
+    if model == 'pri_dqn':
+        from brains.pri_dqn import DeepQNetwork
+        from games.MountainCar_v0.network_pri_dqn import build_network
+        inputs, outputs, weights = build_network(n_features, n_actions, lr=0.01)
+        # get the DeepQNetwork Agent
+        RL = DeepQNetwork(
+            n_actions=3,
+            n_features=2,
+            eval_net_input=inputs[0],
+            target_net_input=inputs[1],
+            q_target=inputs[2],
+            ISWeights=inputs[3],
+            q_eval_net_out=outputs[0],
+            loss=outputs[1],
+            train_op=outputs[2],
+            q_target_net_out=outputs[3],
+            abs_errors=outputs[4],
+            e_params=weights[0],
+            t_params=weights[1],
+            e_greedy_increment=0.00005,
+            output_graph=True,
+        )
+    else:  # double_dqn
+        from brains.double_dqn import DeepQNetwork
+        from games.MountainCar_v0.network_double_dqn import build_network
+        inputs, outputs, weights = build_network(n_features, n_actions, lr=0.01)
+        # get the DeepQNetwork Agent
+        RL = DeepQNetwork(
+            n_actions=n_actions,
+            n_features=n_features,
+            eval_net_input=inputs[0],
+            target_net_input=inputs[1],
+            q_target=inputs[2],
+            q_eval_net_out=outputs[0],
+            loss=outputs[1],
+            train_op=outputs[2],
+            q_target_net_out=outputs[3],
+            e_params=weights[0],
+            t_params=weights[1],
+            learning_rate=0.005,
+            reward_decay=0.9,
+            e_greedy=0.9,
+            replace_target_iter=500,
+            memory_size=10000,
+            e_greedy_increment=0.00005,
+            output_graph=True,
+        )
 
     # Calculate running time
     start_time = time.time()
 
-    print(run_mountaincar(env, RL_prio))
+    his_prio = run_mountaincar(env, RL)
+    print(his_prio)  # his_prio can be plotted by plot_results()
 
     end_time = time.time()
     running_time = (end_time - start_time) / 60
@@ -127,5 +130,5 @@ def main(model):
 
 if __name__ == '__main__':
     # # change different models here:
-    # pri_dqn, ...
-    main(model='pri_dqn')
+    # pri_dqn, double_dqn...
+    main(model='double_dqn')
