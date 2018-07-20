@@ -123,4 +123,4 @@ def main(model):
 if __name__ == '__main__':
     # # change different models here:
     # double_dqn, dueling_dqn,...
-    main(model='dueling_dqn')
+    main(model='double_dqn')

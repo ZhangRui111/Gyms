@@ -1,3 +1,5 @@
+""" This Prioritized DQN is based on DQN 2015.
+"""
 import numpy as np
 import tensorflow as tf
 

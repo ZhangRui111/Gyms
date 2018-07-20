@@ -1,3 +1,5 @@
+""" This Dueling DQN is based on DQN 2015.
+"""
 import numpy as np
 import tensorflow as tf
 
@@ -141,11 +143,13 @@ class DeepQNetwork:
         batch_index = np.arange(self.batch_size, dtype=np.int32)
 
         # # Double DQN
-        max_act4next = np.argmax(q_target_select_a, axis=1)
-        selected_q_next = q_target_out[batch_index, max_act4next]
-
+        # max_act4next = np.argmax(q_target_select_a, axis=1)
+        # selected_q_next = q_target_out[batch_index, max_act4next]
+        # # DQN 2015
+        selected_q_next = np.max(q_target_out, axis=1)
         # real q_target
         q_target[batch_index, eval_act_index] = reward + self.gamma * selected_q_next
+
         if self.summary_flag:
             tf.summary.histogram("q_target", q_target)
 

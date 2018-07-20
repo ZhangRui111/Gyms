@@ -1,3 +1,5 @@
+""" This Dueling DQN is based on DQN 2015.
+"""
 import numpy as np
 import tensorflow as tf
 
@@ -143,6 +145,8 @@ class DeepQNetwork:
         # # Double DQN
         max_act4next = np.argmax(q_target_select_a, axis=1)
         selected_q_next = q_target_out[batch_index, max_act4next]
+        # # DQN 2015
+        # selected_q_next = np.max(q_target_out, axis=1)
 
         # real q_target
         q_target[batch_index, eval_act_index] = reward + self.gamma * selected_q_next
