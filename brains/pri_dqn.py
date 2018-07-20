@@ -29,9 +29,9 @@ class SumTree(object):
 
     def add(self, p, data):
         tree_idx = self.data_pointer + self.capacity - 1
-        self.data[self.data_pointer] = data  # update data_frame
         self.update(tree_idx, p)  # update tree_frame
 
+        self.data[self.data_pointer] = data  # update data_frame
         self.data_pointer += 1
         if self.data_pointer >= self.capacity:  # replace when exceed the capacity
             self.data_pointer = 0
@@ -98,10 +98,10 @@ class Memory(object):  # stored as ( s, a, r, s_ ) in SumTree
         self.tree.add(max_p, transition)  # set the max p for new p
 
     def sample(self, n):
-        b_idx, b_memory, ISWeights = np.empty((n,), dtype=np.int32), np.empty((n, self.tree.data[0].size)), np.empty(
-            (n, 1))
+        b_idx, b_memory, ISWeights = np.empty((n,), dtype=np.int32), \
+                                     np.empty((n, self.tree.data[0].size)), np.empty((n, 1))
         pri_seg = self.tree.total_p / n  # priority segment
-        self.beta = np.min([1., self.beta + self.beta_increment_per_sampling])  # max = 1
+        self.beta = np.min([1., self.beta + self.beta_increment_per_sampling])  # beta_max = 1
 
         min_prob = np.min(self.tree.tree[-self.tree.capacity:]) / self.tree.total_p  # for later calculate ISweight
         for i in range(n):
@@ -109,6 +109,8 @@ class Memory(object):  # stored as ( s, a, r, s_ ) in SumTree
             v = np.random.uniform(a, b)
             idx, p, data = self.tree.get_leaf(v)
             prob = p / self.tree.total_p
+            # About ISWeights's calculation,
+            # https://morvanzhou.github.io/tutorials/machine-learning/reinforcement-learning/4-6-prioritized-replay/
             ISWeights[i, 0] = np.power(prob / min_prob, -self.beta)
             b_idx[i], b_memory[i, :] = idx, data
         return b_idx, b_memory, ISWeights
@@ -171,17 +173,12 @@ class DeepQNetwork:
         self.e_params = e_params
         self.t_params = t_params
 
-        self.prioritized = prioritized  # decide to use double q or not
-
         self.learn_step_counter = 0
 
         with tf.variable_scope('soft_replacement'):
             self.target_replace_op = [tf.assign(t, e) for t, e in zip(self.t_params, self.e_params)]
 
-        if self.prioritized:
-            self.memory = Memory(capacity=memory_size)
-        else:
-            self.memory = np.zeros((self.memory_size, n_features * 2 + 2))
+        self.memory = Memory(capacity=memory_size)
 
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
@@ -209,11 +206,7 @@ class DeepQNetwork:
             self.sess.run(self.target_replace_op)
             print('\ntarget_params_replaced\n')
 
-        if self.prioritized:
-            tree_idx, batch_memory, ISWeights = self.memory.sample(self.batch_size)
-        else:
-            sample_index = np.random.choice(self.memory_size, size=self.batch_size)
-            batch_memory = self.memory[sample_index, :]
+        tree_idx, batch_memory, ISWeights = self.memory.sample(self.batch_size)
 
         q_next, q_eval = self.sess.run(
             [self.q_target_net_out, self.q_eval_net_out],
@@ -227,16 +220,11 @@ class DeepQNetwork:
 
         q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(q_next, axis=1)
 
-        if self.prioritized:
-            _, abs_errors, self.cost = self.sess.run([self.train_op, self.abs_errors, self.loss],
-                                                     feed_dict={self.eval_net_input: batch_memory[:, :self.n_features],
-                                                                self.q_target: q_target,
-                                                                self.ISWeights: ISWeights})
-            self.memory.batch_update(tree_idx, abs_errors)  # update priority
-        else:
-            _, self.cost = self.sess.run([self.train_op, self.loss],
-                                         feed_dict={self.eval_net_input: batch_memory[:, :self.n_features],
-                                                    self.q_target: q_target})
+        _, abs_errors, self.cost = self.sess.run([self.train_op, self.abs_errors, self.loss],
+                                                 feed_dict={self.eval_net_input: batch_memory[:, :self.n_features],
+                                                            self.q_target: q_target,
+                                                            self.ISWeights: ISWeights})
+        self.memory.batch_update(tree_idx, abs_errors)  # update priority
 
         self.cost_his.append(self.cost)
 

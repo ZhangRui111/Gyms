@@ -37,7 +37,8 @@ def run_mountaincar(env, RL):
 
             observation_, reward, done, info = env.step(action)
 
-            if done: reward = 10
+            if done:
+                reward = 10
 
             RL.store_transition(observation, action, reward, observation_)
 
