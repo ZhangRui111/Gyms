@@ -3,6 +3,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Set log level: only output error.
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Only use #0 GPU.
 import time
+import tensorflow as tf
 import matplotlib as mlp
 mlp.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -11,6 +12,8 @@ import numpy as np
 from games.MountainCar_v0.hyperparameters import MAX_EPISODES
 from games.MountainCar_v0.hyperparameters import REPLY_START_SIZE
 from games.MountainCar_v0.hyperparameters import UPDATE_FREQUENCY
+from games.MountainCar_v0.hyperparameters import WEIGHTS_SAVER_ITER
+from games.MountainCar_v0.hyperparameters import SAVED_NETWORK_PATH
 
 
 def plot_results(his_natural, his_prio):
@@ -24,7 +27,22 @@ def plot_results(his_natural, his_prio):
     plt.show()
 
 
-def run_mountaincar(env, RL, model):
+def store_parameters(sess):
+    saver = tf.train.Saver()
+    checkpoint = tf.train.get_checkpoint_state(SAVED_NETWORK_PATH)
+    if checkpoint and checkpoint.model_checkpoint_path:
+        saver.restore(sess, checkpoint.model_checkpoint_path)
+        print("Successfully loaded:", checkpoint.model_checkpoint_path)
+        path_ = checkpoint.model_checkpoint_path
+        step = int((path_.split('-'))[-1])
+    else:
+        # Re-train the network from zero.
+        print("Could not find old network weights")
+        step = 0
+    return saver, step
+
+
+def run_mountaincar(env, RL, model, saver, load_step):
     total_steps = 0  # total steps after training begins.
     steps_total = []  # sum of steps until one episode.
     episodes = []  # episode's index.
@@ -60,13 +78,16 @@ def run_mountaincar(env, RL, model):
             if total_steps > RL.memory_size:
                 if (total_steps > REPLY_START_SIZE) and (total_steps % UPDATE_FREQUENCY == 0):
                     RL.learn()
+                if (total_steps > REPLY_START_SIZE) and (total_steps % WEIGHTS_SAVER_ITER == 0):
+                    saver.save(RL.sess, SAVED_NETWORK_PATH + '-dqn-' + str(total_steps + load_step))
+                    print('-----save weights-----')
 
             observation = observation_
             episode_steps += 1
+            total_steps += 1
 
             if done:
                 print('episode ', i_episode, ' finished')
-                total_steps += episode_steps
                 steps_episode.append(episode_steps)
                 steps_total.append(total_steps)
                 episodes.append(i_episode)
@@ -108,6 +129,7 @@ def main(model):
             e_greedy_increment=0.00005,
             output_graph=True,
         )
+        saver, load_step = store_parameters(RL.sess)
     else:  # double_dqn
         from brains.double_dqn import DeepQNetwork
         from games.MountainCar_v0.network_double_dqn import build_network
@@ -133,11 +155,12 @@ def main(model):
             e_greedy_increment=0.00005,
             output_graph=True,
         )
+        saver, load_step = store_parameters(RL.sess)
 
     # Calculate running time
     start_time = time.time()
 
-    his_prio = run_mountaincar(env, RL, model)
+    his_prio = run_mountaincar(env, RL, model, saver, load_step)
     print(his_prio)  # his_prio can be plotted by plot_results()
 
     end_time = time.time()
