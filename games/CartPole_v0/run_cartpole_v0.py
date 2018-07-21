@@ -9,8 +9,7 @@ import tensorflow as tf
 
 from games.CartPole_v0.hyperparameters import Hyperparameters
 from utils.write_to_file import write_to_file_running_time
-from utils.write_to_file import write_to_file_running_steps_total
-from utils.write_to_file import write_to_file_running_steps_episode
+from utils.write_to_file import write_to_file_running_steps
 
 
 def restore_parameters(sess, model):
@@ -70,9 +69,9 @@ def run_cartpole(env, RL, model, saver, load_step):
 
                     if total_steps % Hp.OUTPUT_SAVER_ITER == 0:
                         filename1 = Hp.LOGS_DATA_PATH + model + '/steps_total.txt'
-                        write_to_file_running_steps_total(filename1, str(np.vstack((episodes, steps_total))))
+                        write_to_file_running_steps(filename1, str(np.vstack((episodes, steps_total))))
                         filename2 = Hp.LOGS_DATA_PATH + model + '/steps_episode.txt'
-                        write_to_file_running_steps_episode(filename2, str(np.vstack((episodes, steps_episode))))
+                        write_to_file_running_steps(filename2, str(np.vstack((episodes, steps_episode))))
                         print('-----save outputs-----')
 
             # swap observation
@@ -162,4 +161,4 @@ if __name__ == '__main__':
     Hp = Hyperparameters()
     # # change different models here:
     # dqn_2013, dqn_2015,...
-    main(model='dqn_2013')
+    main(model='dqn_2015')
