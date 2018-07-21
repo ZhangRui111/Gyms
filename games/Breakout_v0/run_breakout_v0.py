@@ -8,18 +8,12 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Only use #0 GPU.
 import time
 import tensorflow as tf
 
-from games.Breakout_v0.hyperparameters import MAX_EPISODES
-from games.Breakout_v0.hyperparameters import REPLY_START_SIZE
-from games.Breakout_v0.hyperparameters import UPDATE_FREQUENCY
-from games.Breakout_v0.hyperparameters import WEIGHTS_SAVER_ITER
-from games.Breakout_v0.hyperparameters import OUTPUT_SAVER_ITER
-from games.Breakout_v0.hyperparameters import SAVED_NETWORK_PATH
-from games.Breakout_v0.hyperparameters import LOGS_DATA_PATH
+from games.Breakout_v0.hyperparameters import Hyperparameters
 
 
 def restore_parameters(sess, model):
     saver = tf.train.Saver()
-    checkpoint = tf.train.get_checkpoint_state(SAVED_NETWORK_PATH + model + '/')
+    checkpoint = tf.train.get_checkpoint_state(Hp.SAVED_NETWORK_PATH + model + '/')
     if checkpoint and checkpoint.model_checkpoint_path:
         saver.restore(sess, checkpoint.model_checkpoint_path)
         print("Successfully loaded:", checkpoint.model_checkpoint_path)
@@ -38,7 +32,7 @@ def run_Breakout(env, RL, model, saver, load_step):
     episodes = []  # episode's index.
     steps_episode = []  # steps for every single episode.
 
-    for i_episode in range(MAX_EPISODES):
+    for i_episode in range(Hp.MAX_EPISODES):
         print('episode:' + str(i_episode))
         # initial observation
         observation = env.reset()
@@ -65,17 +59,17 @@ def run_Breakout(env, RL, model, saver, load_step):
                 RL.store_transition(observation, action, reward, observation_)
 
             if total_steps > RL.memory_size:
-                if total_steps > REPLY_START_SIZE:
-                    if total_steps % UPDATE_FREQUENCY == 0:
+                if total_steps > Hp.REPLY_START_SIZE:
+                    if total_steps % Hp.UPDATE_FREQUENCY == 0:
                         RL.learn()
 
-                    if total_steps % WEIGHTS_SAVER_ITER == 0:
-                        saver.save(RL.sess, SAVED_NETWORK_PATH + model + '/' + '-' + model + '-' +
+                    if total_steps % Hp.WEIGHTS_SAVER_ITER == 0:
+                        saver.save(RL.sess, Hp.SAVED_NETWORK_PATH + model + '/' + '-' + model + '-' +
                                    str(total_steps + load_step))
                         print('-----save weights-----')
 
-                    if total_steps % OUTPUT_SAVER_ITER == 0:
-                        filename1 = LOGS_DATA_PATH + model + '/steps_total.txt'
+                    if total_steps % Hp.OUTPUT_SAVER_ITER == 0:
+                        filename1 = Hp.LOGS_DATA_PATH + model + '/steps_total.txt'
                         if not os.path.exists(os.path.dirname(filename1)):
                             try:
                                 os.makedirs(os.path.dirname(filename1))
@@ -85,7 +79,7 @@ def run_Breakout(env, RL, model, saver, load_step):
                         fp1 = open(filename1, "w")
                         fp1.write(str(np.vstack((episodes, steps_total))))
                         fp1.close()
-                        filename2 = LOGS_DATA_PATH + model + '/steps_episode.txt'
+                        filename2 = Hp.LOGS_DATA_PATH + model + '/steps_episode.txt'
                         if not os.path.exists(os.path.dirname(filename2)):
                             try:
                                 os.makedirs(os.path.dirname(filename2))
@@ -207,7 +201,7 @@ def main(model):
     end_time = time.time()
     running_time = (end_time - start_time) / 60
 
-    filename = LOGS_DATA_PATH + model + "/running_time.txt"
+    filename = Hp.LOGS_DATA_PATH + model + "/running_time.txt"
     if not os.path.exists(os.path.dirname(filename)):
         try:
             os.makedirs(os.path.dirname(filename))
@@ -222,4 +216,5 @@ def main(model):
 if __name__ == '__main__':
     # # change different models here:
     # double_dqn, dueling_dqn, sarsa, n_step_sarsa...
+    Hp = Hyperparameters()
     main(model='sarsa')
