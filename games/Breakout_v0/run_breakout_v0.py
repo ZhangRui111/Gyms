@@ -9,6 +9,9 @@ import time
 import tensorflow as tf
 
 from games.Breakout_v0.hyperparameters import Hyperparameters
+from utils.write_to_file import write_to_file_running_time
+from utils.write_to_file import write_to_file_running_steps_total
+from utils.write_to_file import write_to_file_running_steps_episode
 
 
 def restore_parameters(sess, model):
@@ -70,25 +73,9 @@ def run_Breakout(env, RL, model, saver, load_step):
 
                     if total_steps % Hp.OUTPUT_SAVER_ITER == 0:
                         filename1 = Hp.LOGS_DATA_PATH + model + '/steps_total.txt'
-                        if not os.path.exists(os.path.dirname(filename1)):
-                            try:
-                                os.makedirs(os.path.dirname(filename1))
-                            except OSError as exc:  # Guard against race condition
-                                if exc.errno != errno.EEXIST:
-                                    raise
-                        fp1 = open(filename1, "w")
-                        fp1.write(str(np.vstack((episodes, steps_total))))
-                        fp1.close()
+                        write_to_file_running_steps_total(filename1, str(np.vstack((episodes, steps_total))))
                         filename2 = Hp.LOGS_DATA_PATH + model + '/steps_episode.txt'
-                        if not os.path.exists(os.path.dirname(filename2)):
-                            try:
-                                os.makedirs(os.path.dirname(filename2))
-                            except OSError as exc:  # Guard against race condition
-                                if exc.errno != errno.EEXIST:
-                                    raise
-                        fp2 = open(filename2, "w")
-                        fp2.write(str(np.vstack((episodes, steps_episode))))
-                        fp2.close()
+                        write_to_file_running_steps_episode(filename2, str(np.vstack((episodes, steps_episode))))
                         print('-----save outputs-----')
 
             observation = observation_
@@ -202,15 +189,7 @@ def main(model):
     running_time = (end_time - start_time) / 60
 
     filename = Hp.LOGS_DATA_PATH + model + "/running_time.txt"
-    if not os.path.exists(os.path.dirname(filename)):
-        try:
-            os.makedirs(os.path.dirname(filename))
-        except OSError as exc:  # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise
-    fo = open(filename, "w")
-    fo.write(str(running_time) + "minutes")
-    fo.close()
+    write_to_file_running_time(filename, str(running_time))
 
 
 if __name__ == '__main__':
