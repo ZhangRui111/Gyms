@@ -1,3 +1,4 @@
+import errno
 import gym
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Set log level: only output error.
@@ -29,9 +30,9 @@ def plot_results(his_natural, his_prio):
     plt.show()
 
 
-def store_parameters(sess):
+def store_parameters(sess, model):
     saver = tf.train.Saver()
-    checkpoint = tf.train.get_checkpoint_state(SAVED_NETWORK_PATH)
+    checkpoint = tf.train.get_checkpoint_state(SAVED_NETWORK_PATH + model + '/')
     if checkpoint and checkpoint.model_checkpoint_path:
         saver.restore(sess, checkpoint.model_checkpoint_path)
         print("Successfully loaded:", checkpoint.model_checkpoint_path)
@@ -83,14 +84,29 @@ def run_mountaincar(env, RL, model, saver, load_step):
                         RL.learn()
 
                     if total_steps % WEIGHTS_SAVER_ITER == 0:
-                        saver.save(RL.sess, SAVED_NETWORK_PATH + '-' + model + '-' + str(total_steps + load_step))
+                        saver.save(RL.sess, SAVED_NETWORK_PATH + model + '/' + '-' + model + '-' +
+                                   str(total_steps + load_step))
                         print('-----save weights-----')
 
                     if total_steps % OUTPUT_SAVER_ITER == 0:
-                        fp1 = open(LOGS_DATA_PATH + model + '-steps_total.txt', "w")
+                        filename1 = LOGS_DATA_PATH + model + '/steps_total.txt'
+                        if not os.path.exists(os.path.dirname(filename1)):
+                            try:
+                                os.makedirs(os.path.dirname(filename1))
+                            except OSError as exc:  # Guard against race condition
+                                if exc.errno != errno.EEXIST:
+                                    raise
+                        fp1 = open(filename1, "w")
                         fp1.write(str(np.vstack((episodes, steps_total))))
                         fp1.close()
-                        fp2 = open(LOGS_DATA_PATH + model + '-steps_episode.txt', "w")
+                        filename2 = LOGS_DATA_PATH + model + '/steps_episode.txt'
+                        if not os.path.exists(os.path.dirname(filename2)):
+                            try:
+                                os.makedirs(os.path.dirname(filename2))
+                            except OSError as exc:  # Guard against race condition
+                                if exc.errno != errno.EEXIST:
+                                    raise
+                        fp2 = open(filename2, "w")
                         fp2.write(str(np.vstack((episodes, steps_episode))))
                         fp2.close()
                         print('-----save outputs-----')
@@ -179,7 +195,7 @@ def main(model):
     end_time = time.time()
     running_time = (end_time - start_time) / 60
 
-    fo = open("./logs/running_time.txt", "w")
+    fo = open(LOGS_DATA_PATH + model + "/running_time.txt", "w")
     fo.write(str(running_time) + "minutes")
     fo.close()
 

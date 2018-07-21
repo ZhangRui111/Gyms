@@ -1,3 +1,4 @@
+import errno
 import gym
 import numpy as np
 import os
@@ -15,9 +16,9 @@ from games.CartPole_v0.hyperparameters import SAVED_NETWORK_PATH
 from games.CartPole_v0.hyperparameters import LOGS_DATA_PATH
 
 
-def store_parameters(sess):
+def store_parameters(sess, model):
     saver = tf.train.Saver()
-    checkpoint = tf.train.get_checkpoint_state(SAVED_NETWORK_PATH)
+    checkpoint = tf.train.get_checkpoint_state(SAVED_NETWORK_PATH + model + '/')
     if checkpoint and checkpoint.model_checkpoint_path:
         saver.restore(sess, checkpoint.model_checkpoint_path)
         print("Successfully loaded:", checkpoint.model_checkpoint_path)
@@ -66,14 +67,29 @@ def run_cartpole(env, RL, model, saver, load_step):
                         RL.learn()
 
                     if total_steps % WEIGHTS_SAVER_ITER == 0:
-                        saver.save(RL.sess, SAVED_NETWORK_PATH + '-' + model + '-' + str(total_steps + load_step))
+                        saver.save(RL.sess, SAVED_NETWORK_PATH + model + '/' + '-' + model + '-' +
+                                   str(total_steps + load_step))
                         print('-----save weights-----')
 
                     if total_steps % OUTPUT_SAVER_ITER == 0:
-                        fp1 = open(LOGS_DATA_PATH + model + '-steps_total.txt', "w")
+                        filename1 = LOGS_DATA_PATH + model + '/steps_total.txt'
+                        if not os.path.exists(os.path.dirname(filename1)):
+                            try:
+                                os.makedirs(os.path.dirname(filename1))
+                            except OSError as exc:  # Guard against race condition
+                                if exc.errno != errno.EEXIST:
+                                    raise
+                        fp1 = open(filename1, "w")
                         fp1.write(str(np.vstack((episodes, steps_total))))
                         fp1.close()
-                        fp2 = open(LOGS_DATA_PATH + model + '-steps_episode.txt', "w")
+                        filename2 = LOGS_DATA_PATH + model + '/steps_episode.txt'
+                        if not os.path.exists(os.path.dirname(filename2)):
+                            try:
+                                os.makedirs(os.path.dirname(filename2))
+                            except OSError as exc:  # Guard against race condition
+                                if exc.errno != errno.EEXIST:
+                                    raise
+                        fp2 = open(filename2, "w")
                         fp2.write(str(np.vstack((episodes, steps_episode))))
                         fp2.close()
                         print('-----save outputs-----')
@@ -122,7 +138,7 @@ def main(model):
             e_greedy_increment=0.001,
             output_graph=True,
         )
-        saver, load_step = store_parameters(RL.sess)
+        saver, load_step = store_parameters(RL.sess, model)
     else:  # dqn_2015
         from brains.dqn_2015 import DeepQNetwork
         from games.CartPole_v0.network_dqn_2015 import build_network
@@ -148,7 +164,7 @@ def main(model):
             e_greedy_increment=0.001,
             output_graph=True,
         )
-        saver, load_step = store_parameters(RL.sess)
+        saver, load_step = store_parameters(RL.sess, model)
 
     # Calculate running time
     start_time = time.time()
@@ -158,7 +174,7 @@ def main(model):
     end_time = time.time()
     running_time = (end_time - start_time) / 60
 
-    fo = open("./logs/running_time.txt", "w")
+    fo = open(LOGS_DATA_PATH + model + "/running_time.txt", "w")
     fo.write(str(running_time) + "minutes")
     fo.close()
 
