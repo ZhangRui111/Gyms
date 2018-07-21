@@ -10,7 +10,9 @@ from games.CartPole_v0.hyperparameters import MAX_EPISODES
 from games.CartPole_v0.hyperparameters import REPLY_START_SIZE
 from games.CartPole_v0.hyperparameters import UPDATE_FREQUENCY
 from games.CartPole_v0.hyperparameters import WEIGHTS_SAVER_ITER
+from games.CartPole_v0.hyperparameters import OUTPUT_SAVER_ITER
 from games.CartPole_v0.hyperparameters import SAVED_NETWORK_PATH
+from games.CartPole_v0.hyperparameters import LOGS_DATA_PATH
 
 
 def store_parameters(sess):
@@ -58,15 +60,23 @@ def run_cartpole(env, RL, model, saver, load_step):
             else:
                 RL.store_transition(observation, action, reward, observation_)
 
-            # 'step % UPDATE_FREQUENCY == 0' is for frame-skipping technique.
-            if (total_steps > REPLY_START_SIZE) and (total_steps % UPDATE_FREQUENCY == 0):
-                RL.learn()
+            if total_steps > RL.memory_size:
+                if total_steps > REPLY_START_SIZE:
+                    if total_steps % UPDATE_FREQUENCY == 0:
+                        RL.learn()
 
-            if (total_steps > REPLY_START_SIZE) and (total_steps % WEIGHTS_SAVER_ITER == 0):
-                saver.save(RL.sess, SAVED_NETWORK_PATH + '-dqn-' + str(total_steps + load_step))
-                print('-----save weights-----')
+                    if total_steps % WEIGHTS_SAVER_ITER == 0:
+                        saver.save(RL.sess, SAVED_NETWORK_PATH + '-' + model + '-' + str(total_steps + load_step))
+                        print('-----save weights-----')
 
-            print(total_steps)
+                    if total_steps % OUTPUT_SAVER_ITER == 0:
+                        fp1 = open(LOGS_DATA_PATH + model + '-steps_total.txt', "w")
+                        fp1.write(str(np.vstack((episodes, steps_total))))
+                        fp1.close()
+                        fp2 = open(LOGS_DATA_PATH + model + '-steps_episode.txt', "w")
+                        fp2.write(str(np.vstack((episodes, steps_episode))))
+                        fp2.close()
+                        print('-----save outputs-----')
 
             # swap observation
             observation = observation_

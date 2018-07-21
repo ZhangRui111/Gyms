@@ -13,7 +13,9 @@ from games.MountainCar_v0.hyperparameters import MAX_EPISODES
 from games.MountainCar_v0.hyperparameters import REPLY_START_SIZE
 from games.MountainCar_v0.hyperparameters import UPDATE_FREQUENCY
 from games.MountainCar_v0.hyperparameters import WEIGHTS_SAVER_ITER
+from games.MountainCar_v0.hyperparameters import OUTPUT_SAVER_ITER
 from games.MountainCar_v0.hyperparameters import SAVED_NETWORK_PATH
+from games.MountainCar_v0.hyperparameters import LOGS_DATA_PATH
 
 
 def plot_results(his_natural, his_prio):
@@ -76,11 +78,22 @@ def run_mountaincar(env, RL, model, saver, load_step):
                 RL.store_transition(observation, action, reward, observation_)
 
             if total_steps > RL.memory_size:
-                if (total_steps > REPLY_START_SIZE) and (total_steps % UPDATE_FREQUENCY == 0):
-                    RL.learn()
-                if (total_steps > REPLY_START_SIZE) and (total_steps % WEIGHTS_SAVER_ITER == 0):
-                    saver.save(RL.sess, SAVED_NETWORK_PATH + '-dqn-' + str(total_steps + load_step))
-                    print('-----save weights-----')
+                if total_steps > REPLY_START_SIZE:
+                    if total_steps % UPDATE_FREQUENCY == 0:
+                        RL.learn()
+
+                    if total_steps % WEIGHTS_SAVER_ITER == 0:
+                        saver.save(RL.sess, SAVED_NETWORK_PATH + '-' + model + '-' + str(total_steps + load_step))
+                        print('-----save weights-----')
+
+                    if total_steps % OUTPUT_SAVER_ITER == 0:
+                        fp1 = open(LOGS_DATA_PATH + model + '-steps_total.txt', "w")
+                        fp1.write(str(np.vstack((episodes, steps_total))))
+                        fp1.close()
+                        fp2 = open(LOGS_DATA_PATH + model + '-steps_episode.txt', "w")
+                        fp2.write(str(np.vstack((episodes, steps_episode))))
+                        fp2.close()
+                        print('-----save outputs-----')
 
             observation = observation_
             episode_steps += 1

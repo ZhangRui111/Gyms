@@ -3,8 +3,9 @@ REPLY_START_SIZE = 100
 UPDATE_FREQUENCY = 1
 
 WEIGHTS_SAVER_ITER = 5000
+OUTPUT_SAVER_ITER = 2000
 SAVED_NETWORK_PATH = './saved_network/'
-
+LOGS_DATA_PATH = './logs/'
 # Class Memory
 M_EPSILON = 0.01  # small amount to avoid zero priority
 M_ALPHA = 0.6  # [0~1] convert the importance of TD error to priority
