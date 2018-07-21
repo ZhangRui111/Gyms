@@ -1,17 +1,18 @@
+import errno
 import gym
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Set log level: only output error.
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Only use #0 GPU.
 import time
+import tensorflow as tf
 import matplotlib as mlp
 mlp.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 
-from games.MountainCar_v0.hyperparameters import MAX_EPISODES
-from games.MountainCar_v0.hyperparameters import REPLY_START_SIZE
-from games.MountainCar_v0.hyperparameters import UPDATE_FREQUENCY
-
+from games.MountainCar_v0.hyperparameters import Hyperparameters
+from utils.write_to_file import write_to_file_running_time
+from utils.write_to_file import write_to_file_running_steps
 
 def plot_results(his_natural, his_prio):
     # compare based on first success
@@ -24,38 +25,86 @@ def plot_results(his_natural, his_prio):
     plt.show()
 
 
-def run_mountaincar(env, RL):
-    total_steps = 0
-    steps = []
-    episodes = []
-    for i_episode in range(MAX_EPISODES):
-        observation = env.reset()
-        while True:
-            # env.render()
+def restore_parameters(sess, model):
+    saver = tf.train.Saver()
+    checkpoint = tf.train.get_checkpoint_state(Hp.SAVED_NETWORK_PATH + model + '/')
+    if checkpoint and checkpoint.model_checkpoint_path:
+        saver.restore(sess, checkpoint.model_checkpoint_path)
+        print("Successfully loaded:", checkpoint.model_checkpoint_path)
+        path_ = checkpoint.model_checkpoint_path
+        step = int((path_.split('-'))[-1])
+    else:
+        # Re-train the network from zero.
+        print("Could not find old network weights")
+        step = 0
+    return saver, step
 
+
+def run_mountaincar(env, RL, model, saver, load_step):
+    total_steps = 0  # total steps after training begins.
+    steps_total = []  # sum of steps until one episode.
+    episodes = []  # episode's index.
+    steps_episode = []  # steps for every single episode.
+
+    for i_episode in range(Hp.MAX_EPISODES):
+        print('episode:' + str(i_episode))
+        observation = env.reset()
+        episode_steps = 0
+
+        if 'sarsa' in model:
             action = RL.choose_action(observation, total_steps)
 
+        while True:
+            env.render()
+            # RL choose action based on observation
+            if 'sarsa' in model:
+                pass
+            else:
+                action = RL.choose_action(observation, total_steps)
+            # RL take action and get next observation and reward
             observation_, reward, done, info = env.step(action)
 
             if done:
                 reward = 10
 
-            RL.store_transition(observation, action, reward, observation_)
+            if 'sarsa' in model:
+                action_ = RL.choose_action(observation_, total_steps)
+                RL.store_transition(observation, action, reward, observation_, action_)
+            else:
+                RL.store_transition(observation, action, reward, observation_)
 
             if total_steps > RL.memory_size:
-                if (total_steps > REPLY_START_SIZE) and (total_steps % UPDATE_FREQUENCY == 0):
-                    RL.learn()
+                if total_steps > Hp.REPLY_START_SIZE:
+                    if total_steps % Hp.UPDATE_FREQUENCY == 0:
+                        RL.learn()
+
+                    if total_steps % Hp.WEIGHTS_SAVER_ITER == 0:
+                        saver.save(RL.sess, Hp.SAVED_NETWORK_PATH + model + '/' + '-' + model + '-' +
+                                   str(total_steps + load_step))
+                        print('-----save weights-----')
+
+                    if total_steps % Hp.OUTPUT_SAVER_ITER == 0:
+                        filename1 = Hp.LOGS_DATA_PATH + model + '/steps_total.txt'
+                        write_to_file_running_steps(filename1, str(np.vstack((episodes, steps_total))))
+                        filename2 = Hp.LOGS_DATA_PATH + model + '/steps_episode.txt'
+                        write_to_file_running_steps(filename2, str(np.vstack((episodes, steps_episode))))
+                        print('-----save outputs-----')
+
+            observation = observation_
+            episode_steps += 1
+            total_steps += 1
 
             if done:
                 print('episode ', i_episode, ' finished')
-                steps.append(total_steps)
+                steps_episode.append(episode_steps)
+                steps_total.append(total_steps)
                 episodes.append(i_episode)
                 break
 
-            observation = observation_
-            total_steps += 1
+            if 'sarsa' in model:
+                action = action_
 
-    return np.vstack((episodes, steps))
+    return [np.vstack((episodes, steps_total)), np.vstack((episodes, steps_episode))]
 
 
 def main(model):
@@ -114,21 +163,23 @@ def main(model):
             output_graph=True,
         )
 
+    saver, load_step = restore_parameters(RL.sess)
+
     # Calculate running time
     start_time = time.time()
 
-    his_prio = run_mountaincar(env, RL)
+    his_prio = run_mountaincar(env, RL, model, saver, load_step)
     print(his_prio)  # his_prio can be plotted by plot_results()
 
     end_time = time.time()
     running_time = (end_time - start_time) / 60
 
-    fo = open("./logs/running_time.txt", "w")
-    fo.write(str(running_time) + "minutes")
-    fo.close()
+    filename = Hp.LOGS_DATA_PATH + model + "/running_time.txt"
+    write_to_file_running_time(filename, str(running_time))
 
 
 if __name__ == '__main__':
+    Hp = Hyperparameters()
     # # change different models here:
     # pri_dqn, double_dqn...
     main(model='double_dqn')

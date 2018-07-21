@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from games.CartPole_v0.hyperparameters import REPLY_START_SIZE
+from games.CartPole_v0.hyperparameters import Hyperparameters
 
 
 class DeepQNetwork:
@@ -61,7 +61,7 @@ class DeepQNetwork:
     def store_transition(self, s, a, r, s_):
         if not hasattr(self, 'memory_counter'):
             self.memory_counter = 0
-        transition = np.hstack((s, [a, r], s_))
+        transition = np.hstack((s.flatten(), [a, r], s_.flatten()))
         # replace the old memory with new memory
         index = self.memory_counter % self.memory_size
         self.memory[index, :] = transition
@@ -75,7 +75,7 @@ class DeepQNetwork:
         :return:
         """
         # at the very beginning, only take actions randomly.
-        if step >= REPLY_START_SIZE and np.random.uniform() < self.epsilon:
+        if step >= Hyperparameters.REPLY_START_SIZE and np.random.uniform() < self.epsilon:
             # forward feed the observation and get q value for every actions
             actions_value = self.sess.run(self.q_eval_net_out,
                                           feed_dict={self.eval_net_input: observation.reshape([1, 4])})

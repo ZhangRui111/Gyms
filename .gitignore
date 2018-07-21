@@ -1,5 +1,6 @@
 .idea/
 __pycache__/
+saved_network/
 
 *.txt
 *.pyc
@@ -7,3 +8,5 @@ __pycache__/
 
 events*
 test.py
+network_n_step_dqn.py
+n_step_dqn.py

@@ -1,7 +1,9 @@
+""" This Dueling DQN is based on DQN 2015.
+"""
 import numpy as np
 import tensorflow as tf
 
-from games.Breakout_v0.hyperparameters import REPLY_START_SIZE
+from games.Breakout_v0.hyperparameters import Hyperparameters
 
 
 class DeepQNetwork:
@@ -89,7 +91,7 @@ class DeepQNetwork:
         :return:
         """
         # at the very beginning, only take actions randomly.
-        if step >= REPLY_START_SIZE and np.random.uniform() < self.epsilon:
+        if step >= Hyperparameters.REPLY_START_SIZE and np.random.uniform() < self.epsilon:
             # forward feed the observation and get q value for every actions
             actions_value = self.sess.run(self.q_eval_net_out,
                                           feed_dict={self.eval_net_input: observation.reshape([1, self.n_features])})
@@ -143,6 +145,8 @@ class DeepQNetwork:
         # # Double DQN
         max_act4next = np.argmax(q_target_select_a, axis=1)
         selected_q_next = q_target_out[batch_index, max_act4next]
+        # # DQN 2015
+        # selected_q_next = np.max(q_target_out, axis=1)
 
         # real q_target
         q_target[batch_index, eval_act_index] = reward + self.gamma * selected_q_next

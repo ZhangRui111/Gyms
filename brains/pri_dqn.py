@@ -1,12 +1,9 @@
+""" This Prioritized DQN is based on DQN 2015.
+"""
 import numpy as np
 import tensorflow as tf
 
-from games.MountainCar_v0.hyperparameters import REPLY_START_SIZE
-from games.MountainCar_v0.hyperparameters import M_EPSILON  # small amount to avoid zero priority
-from games.MountainCar_v0.hyperparameters import M_ALPHA # [0~1] convert the importance of TD error to priority
-from games.MountainCar_v0.hyperparameters import M_BETA  # importance-sampling, from initial value increasing to 1
-from games.MountainCar_v0.hyperparameters import M_BETA_INCRE
-from games.MountainCar_v0.hyperparameters import M_ABS_ERROR_UPPER # clipped abs error
+from games.MountainCar_v0.hyperparameters import Hyperparameters
 
 np.random.seed(1)
 tf.set_random_seed(1)
@@ -83,11 +80,11 @@ class Memory(object):  # stored as ( s, a, r, s_ ) in SumTree
     """ This SumTree code is modified version and the original code is from:
         https://github.com/jaara/AI-blog/blob/master/Seaquest-DDQN-PER.py
     """
-    epsilon = M_EPSILON  # small amount to avoid zero priority
-    alpha = M_ALPHA  # [0~1] convert the importance of TD error to priority
-    beta = M_BETA  # importance-sampling, from initial value increasing to 1
-    beta_increment_per_sampling = M_BETA_INCRE
-    abs_err_upper = M_ABS_ERROR_UPPER  # clipped abs error
+    epsilon = Hyperparameters.M_EPSILON  # small amount to avoid zero priority
+    alpha = Hyperparameters.M_ALPHA  # [0~1] convert the importance of TD error to priority
+    beta = Hyperparameters.M_BETA  # importance-sampling, from initial value increasing to 1
+    beta_increment_per_sampling = Hyperparameters.M_BETA_INCRE
+    abs_err_upper = Hyperparameters.M_ABS_ERROR_UPPER  # clipped abs error
 
     def __init__(self, capacity):
         self.tree = SumTree(capacity)
@@ -194,7 +191,7 @@ class DeepQNetwork:
 
     def choose_action(self, observation, step):
         observation = observation[np.newaxis, :]
-        if step >= REPLY_START_SIZE and np.random.uniform() < self.epsilon:
+        if step >= Hyperparameters.REPLY_START_SIZE and np.random.uniform() < self.epsilon:
             actions_value = self.sess.run(self.q_eval_net_out, feed_dict={self.eval_net_input: observation})
             action = np.argmax(actions_value)
         else:

@@ -1,9 +1,7 @@
-""" This Dueling DQN is based on DQN 2015.
-"""
 import numpy as np
 import tensorflow as tf
 
-from games.Breakout_v0.hyperparameters import Hyperparameters
+from games.CartPole_v0.hyperparameters import Hyperparameters
 
 
 class DeepQNetwork:
@@ -57,7 +55,7 @@ class DeepQNetwork:
         self.learn_step_counter = 0
 
         # initialize zero memory [s, a, r, s_]
-        self.memory = np.zeros((self.memory_size, n_features * 2 + 2))
+        self.memory = np.zeros((self.memory_size, n_features * 2 + 3))
 
         # consist of [target_net, evaluate_net]
         # build_network()
@@ -74,10 +72,10 @@ class DeepQNetwork:
         self.sess.run(tf.global_variables_initializer())
         self.cost_his = []
 
-    def store_transition(self, s, a, r, s_):
+    def store_transition(self, s, a, r, s_, a_):
         if not hasattr(self, 'memory_counter'):
             self.memory_counter = 0
-        transition = np.hstack((s.flatten(), [a, r], s_.flatten()))
+        transition = np.hstack((s.flatten(), [a, r, a_], s_.flatten()))
         # replace the old memory with new memory
         index = self.memory_counter % self.memory_size
         self.memory[index, :] = transition
@@ -123,31 +121,26 @@ class DeepQNetwork:
         else:
             sample_index = np.random.choice(self.memory_counter, size=self.batch_size)
         batch_memory = self.memory[sample_index, :]
-
-        # input is all next observation
-        q_target_select_a, q_target_out = \
-            self.sess.run([self.q_eval_net_out, self.q_target_net_out],
-                          feed_dict={self.eval_net_input: batch_memory[:, -self.n_features:],
-                                     self.target_net_input: batch_memory[:, -self.n_features:]})
-        # real q_eval, input is the current observation
+        # input is s_(next observation)
+        q_target_out = self.sess.run(self.q_target_net_out,
+                                     feed_dict={self.target_net_input: batch_memory[:, -self.n_features:]})
+        # q_eval, for compute q_target
         q_eval = self.sess.run(self.q_eval_net_out,
-                               {self.eval_net_input: batch_memory[:, :self.n_features]})
+                               feed_dict={self.eval_net_input: batch_memory[:, :self.n_features]})
         if self.summary_flag:
             tf.summary.histogram("q_eval", q_eval)
 
         q_target = q_eval.copy()
 
-        eval_act_index = batch_memory[:, self.n_features].astype(int)
-        reward = batch_memory[:, self.n_features + 1]
+        eval_act_index = batch_memory[:, self.n_features].astype(int)  # a
+        reward = batch_memory[:, self.n_features + 1]  # r
+        next_act_index = batch_memory[:, self.n_features+2].astype(int)  # a_
 
         batch_index = np.arange(self.batch_size, dtype=np.int32)
 
-        # # Double DQN
-        # max_act4next = np.argmax(q_target_select_a, axis=1)
-        # selected_q_next = q_target_out[batch_index, max_act4next]
-        # # DQN 2015
-        selected_q_next = np.max(q_target_out, axis=1)
-        # real q_target
+        selected_q_next = q_target_out[batch_index, next_act_index]
+
+        # real q_target, in other words, ``y_i'' in algorithm.
         q_target[batch_index, eval_act_index] = reward + self.gamma * selected_q_next
 
         if self.summary_flag:
