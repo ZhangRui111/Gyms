@@ -30,7 +30,7 @@ def plot_results(his_natural, his_prio):
     plt.show()
 
 
-def store_parameters(sess, model):
+def restore_parameters(sess, model):
     saver = tf.train.Saver()
     checkpoint = tf.train.get_checkpoint_state(SAVED_NETWORK_PATH + model + '/')
     if checkpoint and checkpoint.model_checkpoint_path:
@@ -158,7 +158,6 @@ def main(model):
             e_greedy_increment=0.00005,
             output_graph=True,
         )
-        saver, load_step = store_parameters(RL.sess)
     else:  # double_dqn
         from brains.double_dqn import DeepQNetwork
         from games.MountainCar_v0.network_double_dqn import build_network
@@ -184,7 +183,8 @@ def main(model):
             e_greedy_increment=0.00005,
             output_graph=True,
         )
-        saver, load_step = store_parameters(RL.sess)
+
+    saver, load_step = restore_parameters(RL.sess)
 
     # Calculate running time
     start_time = time.time()
@@ -195,7 +195,14 @@ def main(model):
     end_time = time.time()
     running_time = (end_time - start_time) / 60
 
-    fo = open(LOGS_DATA_PATH + model + "/running_time.txt", "w")
+    filename = LOGS_DATA_PATH + model + "/running_time.txt"
+    if not os.path.exists(os.path.dirname(filename)):
+        try:
+            os.makedirs(os.path.dirname(filename))
+        except OSError as exc:  # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+    fo = open(filename, "w")
     fo.write(str(running_time) + "minutes")
     fo.close()
 

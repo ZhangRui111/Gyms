@@ -16,7 +16,7 @@ from games.CartPole_v0.hyperparameters import SAVED_NETWORK_PATH
 from games.CartPole_v0.hyperparameters import LOGS_DATA_PATH
 
 
-def store_parameters(sess, model):
+def restore_parameters(sess, model):
     saver = tf.train.Saver()
     checkpoint = tf.train.get_checkpoint_state(SAVED_NETWORK_PATH + model + '/')
     if checkpoint and checkpoint.model_checkpoint_path:
@@ -138,7 +138,6 @@ def main(model):
             e_greedy_increment=0.001,
             output_graph=True,
         )
-        saver, load_step = store_parameters(RL.sess, model)
     else:  # dqn_2015
         from brains.dqn_2015 import DeepQNetwork
         from games.CartPole_v0.network_dqn_2015 import build_network
@@ -164,8 +163,8 @@ def main(model):
             e_greedy_increment=0.001,
             output_graph=True,
         )
-        saver, load_step = store_parameters(RL.sess, model)
 
+    saver, load_step = restore_parameters(RL.sess, model)
     # Calculate running time
     start_time = time.time()
 
@@ -174,7 +173,14 @@ def main(model):
     end_time = time.time()
     running_time = (end_time - start_time) / 60
 
-    fo = open(LOGS_DATA_PATH + model + "/running_time.txt", "w")
+    filename = LOGS_DATA_PATH + model + "/running_time.txt"
+    if not os.path.exists(os.path.dirname(filename)):
+        try:
+            os.makedirs(os.path.dirname(filename))
+        except OSError as exc:  # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+    fo = open(filename, "w")
     fo.write(str(running_time) + "minutes")
     fo.close()
 

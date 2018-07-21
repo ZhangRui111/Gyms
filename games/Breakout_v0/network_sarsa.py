@@ -3,7 +3,6 @@ import tensorflow as tf
 
 def build_network(n_features, n_actions, lr):
     """ Build the network for RL algorithm.
-
     :param n_features: input layer's features
     :param n_actions:  How many actions to take in output.
     :param lr: learning rate
