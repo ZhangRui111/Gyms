@@ -84,11 +84,11 @@ class Memory(object):  # stored as ( s, a, r, s_ ) in SumTree
         self._init_paras(para)
 
     def _init_paras(self, para):
-        self.epsilon = para.m_epsilon  # small amount to avoid zero priority
-        self.alpha = para.m_alpha  # [0~1] convert the importance of TD error to priority
-        self.beta = para.m_bata  # importance-sampling, from initial value increasing to 1
-        self.beta_increment_per_sampling = para.m_beta_incre
-        self.abs_err_upper = para.m_abs_err_upper  # clipped abs error
+        self.epsilon = para.epsilon  # small amount to avoid zero priority
+        self.alpha = para.alpha  # [0~1] convert the importance of TD error to priority
+        self.beta = para.beta  # importance-sampling, from initial value increasing to 1
+        self.beta_increment_per_sampling = para.beta_increment_per_sampling
+        self.abs_err_upper = para.abs_err_upper  # clipped abs error
 
     def store(self, transition):
         max_p = np.max(self.tree.tree[-self.tree.capacity:])

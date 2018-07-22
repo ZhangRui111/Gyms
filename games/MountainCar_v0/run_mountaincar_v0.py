@@ -168,7 +168,7 @@ def main(model):
             output_graph=True,
         )
 
-    saver, load_step = restore_parameters(RL.sess)
+    saver, load_step = restore_parameters(RL.sess, model)
 
     # Calculate running time
     start_time = time.time()
