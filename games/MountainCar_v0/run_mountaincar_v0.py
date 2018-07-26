@@ -118,6 +118,8 @@ def main(model):
     if model == 'pri_dqn':
         from brains.pri_dqn import DeepQNetwork
         from games.MountainCar_v0.network_pri_dqn import build_network
+        from brains.pri_dqn import MemoryParas
+        m_paras = MemoryParas(Hp.M_EPSILON, Hp.M_ALPHA, Hp.M_BETA, Hp.M_BETA_INCRE, Hp.M_ABS_ERROR_UPPER)
         inputs, outputs, weights = build_network(n_features, n_actions, lr=0.01)
         # get the DeepQNetwork Agent
         RL = DeepQNetwork(
@@ -134,6 +136,8 @@ def main(model):
             abs_errors=outputs[4],
             e_params=weights[0],
             t_params=weights[1],
+            memory_paras=m_paras,
+            replay_start_size=Hp.REPLY_START_SIZE,
             e_greedy_increment=0.00005,
             output_graph=True,
         )
@@ -154,6 +158,7 @@ def main(model):
             q_target_net_out=outputs[3],
             e_params=weights[0],
             t_params=weights[1],
+            replay_start_size=Hp.REPLY_START_SIZE,
             learning_rate=0.005,
             reward_decay=0.9,
             e_greedy=0.9,
@@ -163,7 +168,7 @@ def main(model):
             output_graph=True,
         )
 
-    saver, load_step = restore_parameters(RL.sess)
+    saver, load_step = restore_parameters(RL.sess, model)
 
     # Calculate running time
     start_time = time.time()

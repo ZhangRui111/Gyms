@@ -3,8 +3,6 @@
 import numpy as np
 import tensorflow as tf
 
-from games.MountainCar_v0.hyperparameters import Hyperparameters
-
 np.random.seed(1)
 tf.set_random_seed(1)
 
@@ -80,14 +78,17 @@ class Memory(object):  # stored as ( s, a, r, s_ ) in SumTree
     """ This SumTree code is modified version and the original code is from:
         https://github.com/jaara/AI-blog/blob/master/Seaquest-DDQN-PER.py
     """
-    epsilon = Hyperparameters.M_EPSILON  # small amount to avoid zero priority
-    alpha = Hyperparameters.M_ALPHA  # [0~1] convert the importance of TD error to priority
-    beta = Hyperparameters.M_BETA  # importance-sampling, from initial value increasing to 1
-    beta_increment_per_sampling = Hyperparameters.M_BETA_INCRE
-    abs_err_upper = Hyperparameters.M_ABS_ERROR_UPPER  # clipped abs error
 
-    def __init__(self, capacity):
+    def __init__(self, capacity, para):
         self.tree = SumTree(capacity)
+        self._init_paras(para)
+
+    def _init_paras(self, para):
+        self.epsilon = para.epsilon  # small amount to avoid zero priority
+        self.alpha = para.alpha  # [0~1] convert the importance of TD error to priority
+        self.beta = para.beta  # importance-sampling, from initial value increasing to 1
+        self.beta_increment_per_sampling = para.beta_increment_per_sampling
+        self.abs_err_upper = para.abs_err_upper  # clipped abs error
 
     def store(self, transition):
         max_p = np.max(self.tree.tree[-self.tree.capacity:])
@@ -121,6 +122,15 @@ class Memory(object):  # stored as ( s, a, r, s_ ) in SumTree
             self.tree.update(ti, p)
 
 
+class MemoryParas(object):
+    def __init__(self, m_epsilon, m_alpha, m_bata, m_beta_incre, m_abs_err_upper):
+        self.epsilon = m_epsilon  # small amount to avoid zero priority
+        self.alpha = m_alpha  # [0~1] convert the importance of TD error to priority
+        self.beta = m_bata  # importance-sampling, from initial value increasing to 1
+        self.beta_increment_per_sampling = m_beta_incre
+        self.abs_err_upper = m_abs_err_upper  # clipped abs error
+
+
 class DeepQNetwork:
     def __init__(
             self,
@@ -137,6 +147,8 @@ class DeepQNetwork:
             abs_errors,
             e_params,
             t_params,
+            memory_paras,
+            replay_start_size=1000,
             learning_rate=0.005,
             reward_decay=0.9,
             e_greedy=0.9,
@@ -148,6 +160,8 @@ class DeepQNetwork:
     ):
         self.n_actions = n_actions
         self.n_features = n_features
+        self.memory_paras = memory_paras
+        self.replay_start = replay_start_size
         self.lr = learning_rate
         self.gamma = reward_decay
         self.epsilon_max = e_greedy
@@ -175,7 +189,7 @@ class DeepQNetwork:
         with tf.variable_scope('soft_replacement'):
             self.target_replace_op = [tf.assign(t, e) for t, e in zip(self.t_params, self.e_params)]
 
-        self.memory = Memory(capacity=memory_size)
+        self.memory = Memory(capacity=memory_size, para=self.memory_paras)
 
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
@@ -191,7 +205,7 @@ class DeepQNetwork:
 
     def choose_action(self, observation, step):
         observation = observation[np.newaxis, :]
-        if step >= Hyperparameters.REPLY_START_SIZE and np.random.uniform() < self.epsilon:
+        if step >= self.replay_start and np.random.uniform() < self.epsilon:
             actions_value = self.sess.run(self.q_eval_net_out, feed_dict={self.eval_net_input: observation})
             action = np.argmax(actions_value)
         else:

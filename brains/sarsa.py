@@ -1,8 +1,6 @@
 import numpy as np
 import tensorflow as tf
 
-from games.CartPole_v0.hyperparameters import Hyperparameters
-
 
 class DeepQNetwork:
     def __init__(
@@ -18,6 +16,7 @@ class DeepQNetwork:
             q_target_net_out,
             e_params,
             t_params,
+            replay_start_size=1000,
             learning_rate=0.01,
             reward_decay=0.9,
             e_greedy=0.9,
@@ -29,6 +28,7 @@ class DeepQNetwork:
     ):
         self.n_actions = n_actions
         self.n_features = n_features
+        self.replay_start = replay_start_size
         self.lr = learning_rate
         self.gamma = reward_decay
         self.epsilon_max = e_greedy
@@ -89,7 +89,7 @@ class DeepQNetwork:
         :return:
         """
         # at the very beginning, only take actions randomly.
-        if step >= Hyperparameters.REPLY_START_SIZE and np.random.uniform() < self.epsilon:
+        if step >= self.replay_start and np.random.uniform() < self.epsilon:
             # forward feed the observation and get q value for every actions
             actions_value = self.sess.run(self.q_eval_net_out,
                                           feed_dict={self.eval_net_input: observation.reshape([1, self.n_features])})
