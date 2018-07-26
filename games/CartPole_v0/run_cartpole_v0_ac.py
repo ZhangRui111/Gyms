@@ -91,6 +91,12 @@ class Critic(object):
             )
 
         with tf.variable_scope('squared_TD_error'):
+            """ self.td_error: how much better is the next state than current state.
+                If tf_error is positive, means the next state is better than the current state.
+                So in Actor class, in order to maximum log(P)*td_error, log(P) must be big,
+                but log(P) is negative (as 0<P<1), so |log(P)| must be small. Then P must be increase to 1.
+                So, for an action whose next state is better than current state, we increase its possibility.
+            """
             self.td_error = self.r + GAMMA * self.v_ - self.v
             self.loss = tf.square(self.td_error)    # TD_error = (r+gamma*V_next) - V_eval
         with tf.variable_scope('train'):
